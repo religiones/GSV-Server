@@ -1,19 +1,23 @@
 import networkx as nx
 import numpy as np
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from gensim.models import Word2Vec
 from py2neo import *
 from model.RandomWalker import RandomWalker
 from service.community import CommunityService
+from service.graph import GraphService
 
 app = Flask(__name__)
 CORS(app, resources=r'/*')  # 跨域
 graph = Graph("bolt://localhost:7687", auth=("neo4j", "chinavis"))
 
-num_walks = 80    #序列数量
-walk_length = 10  #序列长度
+num_walks = 80    # 序列数量
+walk_length = 10  # 序列长度
 workers = 4
+# service
+communityService = CommunityService(graphDevice=graph)
+graphService = GraphService(graphDevice=graph)
 
 @app.route('/')
 def hello_world():  # put application's code here
@@ -25,15 +29,23 @@ def test():
 
 @app.route('/api/community', methods=["GET", "POST"])
 def get_community():
-    community = CommunityService(graphDevice=graph)
-    communitylist = community.getAllCommunity()
+    communitylist = communityService.getAllCommunity()
     if communitylist != None:
-        return {"data": communitylist}
+        return jsonify(communitylist)
     else:
         return "no community data"
 
-@app.route('/api/getGraph', methods=["GET", "POST"])
+@app.route('/api/graph', methods=["GET", "POST"])
 def get_graph():
+    val = request.get_json()
+    res = graphService.getGraphByCommunity(val["community"])
+    if res != None:
+        return res
+    else:
+        return "no graph data"
+
+@app.route('/api/getGraphEmbedding', methods=["GET", "POST"])
+def get_graph_embedding():
     node_sql = "match (n) where n.community=1782816 return n.id"
     edge_sql = "match (n)-[r]-(m) where n.community=1782816 and m.community=1782816 return n.id,m.id"
     res_node = graph.run(node_sql).to_ndarray()
