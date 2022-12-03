@@ -7,6 +7,7 @@ from py2neo import *
 from model.RandomWalker import RandomWalker
 from service.community import CommunityService
 from service.graph import GraphService
+from service.neighbor import NeighborService
 
 app = Flask(__name__)
 CORS(app, resources=r'/*')  # 跨域
@@ -18,6 +19,7 @@ workers = 4
 # service
 communityService = CommunityService(graphDevice=graph)
 graphService = GraphService(graphDevice=graph)
+neighborService = NeighborService(graphDevice=graph)
 
 @app.route('/')
 def hello_world():  # put application's code here
@@ -43,6 +45,15 @@ def get_graph():
         return res
     else:
         return "no graph data"
+
+@app.route('/api/neighbors', methods=["GET", "POST"])
+def get_neighbors():
+    val = request.get_json()
+    res = neighborService.getNeighborsByCommunity(val["communities"])
+    if res != None:
+        return  res
+    else:
+        return  "no neighbor data"
 
 @app.route('/api/getGraphEmbedding', methods=["GET", "POST"])
 def get_graph_embedding():
