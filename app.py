@@ -58,9 +58,9 @@ def get_similarity():
     source = val["source"]
     target = val["target"]
     max = val["max"]
-    res = communityService.get_graph_embedding(target)
+    res = communityService.getSimilarityCommunity(target,source,max)
     if res != None:
-        return res
+        return jsonify(res)
     else:
         return "no similarity data"
 
