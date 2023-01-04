@@ -37,7 +37,7 @@ def get_community():
 @app.route('/api/graph', methods=["GET", "POST"])
 def get_graph():
     val = request.get_json()
-    res = graphService.getGraphByCommunity(val["community"])
+    res = graphService.getGraphByCommunity(str(val["community"]))
     if res != None:
         return res
     else:
@@ -46,7 +46,7 @@ def get_graph():
 @app.route('/api/neighbors', methods=["GET", "POST"])
 def get_neighbors():
     val = request.get_json()
-    res = neighborService.getNeighborsByCommunity(val["communities"])
+    res = neighborService.getNeighborsByCommunity(str(val["communities"]))
     if res != None:
         return  res
     else:
