@@ -7,6 +7,8 @@ from gensim.models import Word2Vec
 from py2neo import *
 import json
 import os
+
+from sklearn.manifold import TSNE
 from sklearn.neighbors import NearestNeighbors
 
 from model.RandomWalker import RandomWalker
@@ -72,6 +74,12 @@ class CommunityService:
         for word in G.nodes():
             embedding_list.append(model.wv[word].tolist())
         return {"embedding": embedding_list,"id": id}
+
+    "get graph embedding to 2D"
+    def getGraphEmbeddingTo2D(self, graphEmbedding):
+        modelTSNE = TSNE(n_components=2)
+        nodePos = modelTSNE.fit_transform((graphEmbedding)).tolist()
+        return nodePos
 
     "get similarity community"
     def getSimilarityCommunity(self, target, source, max):
