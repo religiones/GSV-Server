@@ -77,7 +77,7 @@ class CommunityService:
 
     "get graph embedding to 2D"
     def getGraphEmbeddingTo2D(self, graphEmbedding):
-        modelTSNE = TSNE(n_components=2)
+        modelTSNE = TSNE(n_components=2, init='pca', random_state=0)
         nodePos = modelTSNE.fit_transform((graphEmbedding)).tolist()
         return nodePos
 
