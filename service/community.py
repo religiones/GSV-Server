@@ -77,7 +77,7 @@ class CommunityService:
 
     "get graph embedding to 2D"
     def getGraphEmbeddingTo2D(self, graphEmbedding):
-        modelTSNE = TSNE(n_components=2, init='pca', random_state=0, n_iter=5000)
+        modelTSNE = TSNE(n_components=2, init='pca', random_state=0, n_iter=3000)
         nodePos = modelTSNE.fit_transform((graphEmbedding)).tolist()
         return nodePos
 
@@ -117,7 +117,7 @@ class CommunityService:
             t.join()
             embeddings.append(t.get_result())
         end = time.time() - start
-        print("cost: "+str(end))
+        print("similarity thread cost: "+str(end))
 
         targetEmbedding = None
         embeddingList = []

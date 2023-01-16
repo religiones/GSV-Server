@@ -43,14 +43,23 @@ def get_graph():
     else:
         return "no graph data"
 
+@app.route('/api/graphs', methods=["GET", "POST"])
+def get_graphs():
+    val = request.get_json()
+    res = graphService.getMultipleGraphByCommunities(val["communities"])
+    if res != None:
+        return jsonify(res)
+    else:
+        return "no graphs data"
+
 @app.route('/api/neighbors', methods=["GET", "POST"])
 def get_neighbors():
     val = request.get_json()
     res = neighborService.getNeighborsByCommunity(str(val["communities"]))
     if res != None:
-        return  res
+        return res
     else:
-        return  "no neighbor data"
+        return "no neighbor data"
 
 @app.route('/api/similarity', methods=["GET", "POST"])
 def get_similarity():

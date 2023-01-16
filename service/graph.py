@@ -1,5 +1,22 @@
+import queue
+import threading
+import time
 from distutils.util import strtobool
 from py2neo import *
+
+class graphThread(threading.Thread):
+    def __init__(self, func, args, name=''):
+        threading.Thread.__init__(self)
+        self.name = name
+        self.func = func
+        self.args = args
+        self.result = self.func(*self.args)
+
+    def get_result(self):
+        try:
+            return self.result
+        except Exception:
+            return None
 
 class GraphService:
     def __init__(self, graphDevice):
@@ -22,6 +39,7 @@ class GraphService:
                     # "opacity": 0.6
                 },
                 "community": node["community"],
+                "comboId": "combo-"+str(node["community"]),
                 "donutAttrs": {
                     "porn": strtobool(node["porn"]),
                     "gambling": strtobool(node["gambling"]),
@@ -56,6 +74,7 @@ class GraphService:
                     # "opacity": 0.6
                 },
                 "community": node["community"],
+                "comboId": "combo-"+str(node["community"]),
                 "attrs": {
                     "ipc_id": node["ipc_id"],
                     "ipc": node["ipc"]
@@ -71,7 +90,8 @@ class GraphService:
                     "lineWidth": 1,
                     # "opacity": 0.6
                 },
-                "community": node["community"]
+                "community": node["community"],
+                "comboId": "combo-"+str(node["community"])
             }
 
     def getGraphByCommunity(self, id):
@@ -87,3 +107,38 @@ class GraphService:
         for edge in res_edge:
             edge_list.append({"source": edge["n.id"], "target": edge["m.id"]})
         return {"nodes": node_list, "edges": edge_list}
+
+    def getMultipleGraphByCommunities(self, ids):
+        # 最大线程数
+        maxThread = 8
+        graphs = []
+        print("threading start")
+        start = time.time()
+        q = queue.Queue(maxsize=maxThread)
+        for id in ids:
+            t = graphThread(func=self.getGraphByCommunity, args=(str(id),), name="graphSearch")
+            q.put(t)
+            if q.qsize() == maxThread:
+                joinThread = []
+                while q.empty() != True:
+                    t = q.get()
+                    joinThread.append(t)
+                    t.start()
+                for t in joinThread:
+                    t.join()
+                    graph = t.get_result()
+                    graph["id"] = t.args
+                    graphs.append(graph)
+        restThread = []
+        while q.empty() != True:
+            t = q.get()
+            restThread.append(t)
+            t.start()
+        for t in restThread:
+            t.join()
+            graph = t.get_result()
+            graph["id"] = t.args
+            graphs.append(graph)
+        end = time.time() - start
+        print("graph thread cost: "+str(end))
+        return graphs
