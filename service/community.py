@@ -42,7 +42,7 @@ class CommunityService:
             return data
 
     "get graph embedding"
-    def get_graph_embedding(self, id):
+    def get_graph_embedding(self, id, embeddingType):
         num_walks = 80  # 序列数量
         walk_length = 10  # 序列长度
         workers = 4
@@ -70,10 +70,16 @@ class CommunityService:
                          workers=workers,
                          window=5,
                          epochs=3)
-        embedding_list = []
-        for word in G.nodes():
-            embedding_list.append(model.wv[word].tolist())
-        return {"embedding": embedding_list,"id": id}
+        if embeddingType == "list":
+            embedding_list = []
+            for word in G.nodes():
+                embedding_list.append(model.wv[word].tolist())
+            return {"embedding": embedding_list, "id": id}
+        else:
+            embedding = {}
+            for word in G.nodes():
+                embedding[word] = model.wv[word].tolist()
+            return embedding
 
     "get graph embedding to 2D"
     def getGraphEmbeddingTo2D(self, graphEmbedding):
@@ -92,7 +98,7 @@ class CommunityService:
         q = queue.Queue(maxsize=maxThread)
         # 多线程查询数据库
         for id in source:
-            t= similarityThread(func=self.get_graph_embedding,args=(id,),name='graphEmbedding')
+            t= similarityThread(func=self.get_graph_embedding,args=(id,"list",),name='graphEmbedding')
             q.put(t)
             # 队列队满
             if q.qsize() == maxThread:

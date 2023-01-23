@@ -76,12 +76,9 @@ def get_similarity():
 @app.route('/api/graphEmbedding', methods=["GET", "POST"])
 def get_graphEmbedding():
     val = request.get_json()
-    res = communityService.get_graph_embedding(str(val["community"]))
+    res = communityService.get_graph_embedding(str(val["community"]),"dict")
     if res != None:
-        embedding = res["embedding"]
-        id = res["id"]
-        pos = communityService.getGraphEmbeddingTo2D(embedding)
-        return {"embedding":embedding, "pos":pos, "id": id}
+        return res
     else:
         return  "no embedding data"
 if __name__ == '__main__':
