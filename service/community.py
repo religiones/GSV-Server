@@ -87,6 +87,21 @@ class CommunityService:
         nodePos = modelTSNE.fit_transform((graphEmbedding)).tolist()
         return nodePos
 
+    def getSimilarityNodes(self, nodes, community, len):
+        embeddingDict = self.get_graph_embedding(community, "dict")
+        nodes_embedding = []
+        embeddingList = []
+        for (k, v) in embeddingDict.items():
+            embeddingList.append(v)
+            if k in nodes:
+                nodes_embedding.append(v)
+        neigh = NearestNeighbors(n_neighbors=len).fit(np.array(embeddingList))
+        distance, indices = neigh.kneighbors(nodes_embedding)
+        nodesId = []
+        embeddingKeys = list(embeddingDict.keys())
+        for id in indices[0]:
+            nodesId.append(embeddingKeys[id])
+        return nodesId
     "get similarity community"
     def getSimilarityCommunity(self, target, source, max):
         # 最大线程数
