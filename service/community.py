@@ -101,6 +101,7 @@ class CommunityService:
         embeddingKeys = list(embeddingDict.keys())
         for id in indices[0]:
             nodesId.append(embeddingKeys[id])
+
         return nodesId
     "get similarity community"
     def getSimilarityCommunity(self, target, source, max):

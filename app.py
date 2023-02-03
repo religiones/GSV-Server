@@ -85,7 +85,7 @@ def get_graphEmbedding():
 @app.route('/api/similarityNodes', methods=["GET", "POST"])
 def get_similarityNodes():
     val = request.get_json()
-    res = communityService.getSimilarityNodes(str(val["nodes"]), str(val["community"]), 100)
+    res = communityService.getSimilarityNodes(str(val["nodes"]), str(val["community"]), val["k"])
     if res != None:
         return jsonify(res)
     else:
