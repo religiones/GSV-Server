@@ -42,10 +42,18 @@ class CommunityService:
             return data
 
     "get graph embedding"
-    def get_graph_embedding(self, id, embeddingType):
+    def get_graph_embedding(self, id, embeddingType, cfg):
         num_walks = 80  # 序列数量
         walk_length = 10  # 序列长度
         workers = 4
+        if cfg["training_algorithm"] == "skip-gram":
+            train_alg = 1
+        else:
+            train_alg = 0
+        if cfg["optimize"] == "hierachical softmax":
+            optimize = 1
+        else:
+            optimize = 0
         node_sql = "match (n) where n.community="+id+" return n.id"
         edge_sql = "match (n)-[r]->(m) where n.community="+id+" and m.community="+id+" return n.id,m.id"
         res_node = self.graphDevice.run(node_sql).to_ndarray()
@@ -63,13 +71,13 @@ class CommunityService:
         rw.preprocess_transition_probs()
         sentences = rw.simulate_walks(num_walks=num_walks, walk_length=walk_length, workers=workers, verbose=1)
         model = Word2Vec(sentences=sentences,
-                         vector_size=128,
+                         vector_size=cfg["vector_size"],
                          min_count=5,
-                         sg=1,
-                         hs=0,
+                         sg=train_alg,
+                         hs=optimize,
                          workers=workers,
-                         window=5,
-                         epochs=3)
+                         window=cfg["window"],
+                         epochs=cfg["epoch"])
         if embeddingType == "list":
             embedding_list = []
             for word in G.nodes():
@@ -87,15 +95,19 @@ class CommunityService:
         nodePos = modelTSNE.fit_transform((graphEmbedding)).tolist()
         return nodePos
 
-    def getSimilarityNodes(self, nodes, community, len):
-        embeddingDict = self.get_graph_embedding(community, "dict")
+    def getSimilarityNodes(self, nodes, community, len, cfg):
+        embeddingDict = self.get_graph_embedding(community, "dict", cfg)
         nodes_embedding = []
         embeddingList = []
         for (k, v) in embeddingDict.items():
             embeddingList.append(v)
             if k in nodes:
                 nodes_embedding.append(v)
-        neigh = NearestNeighbors(n_neighbors=len).fit(np.array(embeddingList))
+        if cfg["similarity"] == "KNN":
+            similarity = "auto"
+        else:
+            similarity = "kd_tree"
+        neigh = NearestNeighbors(n_neighbors=len, algorithm=similarity).fit(np.array(embeddingList))
         distance, indices = neigh.kneighbors(nodes_embedding)
         nodesId = []
         embeddingKeys = list(embeddingDict.keys())
