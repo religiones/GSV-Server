@@ -1,10 +1,6 @@
-import networkx as nx
-import numpy as np
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from gensim.models import Word2Vec
 from py2neo import *
-from model.RandomWalker import RandomWalker
 from service.community import CommunityService
 from service.graph import GraphService
 from service.neighbor import NeighborService
@@ -86,6 +82,7 @@ def get_graphEmbedding():
 def get_similarityNodes():
     val = request.get_json()
     print(val["modelCfg"])
+    print(val["nodes"])
     res = communityService.getSimilarityNodes(str(val["nodes"]), str(val["community"]), val["k"], val["modelCfg"])
     if res != None:
         return jsonify(res)

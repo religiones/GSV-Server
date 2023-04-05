@@ -67,16 +67,16 @@ class CommunityService:
         G.add_edges_from(edge_list)
         G.add_nodes_from(node_list)
         # RandomWaker产生序列
-        rw = RandomWalker(G, p=1, q=1, use_rejection_sampling=0)
+        rw = RandomWalker(G, p=cfg["p_parameter"], q=cfg["q_parameter"], use_rejection_sampling=0)
         rw.preprocess_transition_probs()
         sentences = rw.simulate_walks(num_walks=num_walks, walk_length=walk_length, workers=workers, verbose=1)
         model = Word2Vec(sentences=sentences,
-                         vector_size=cfg["vector_size"],
+                         vector_size=128,
                          min_count=5,
                          sg=train_alg,
                          hs=optimize,
                          workers=workers,
-                         window=cfg["window"],
+                         window=5,
                          epochs=cfg["epoch"])
         if embeddingType == "list":
             embedding_list = []
@@ -109,12 +109,13 @@ class CommunityService:
             similarity = "kd_tree"
         neigh = NearestNeighbors(n_neighbors=len, algorithm=similarity).fit(np.array(embeddingList))
         distance, indices = neigh.kneighbors(nodes_embedding)
+        print(distance[0])
         nodesId = []
         embeddingKeys = list(embeddingDict.keys())
         for id in indices[0]:
             nodesId.append(embeddingKeys[id])
 
-        return nodesId
+        return {"nodesId":nodesId, "distance":distance[0].tolist()}
     "get similarity community"
     def getSimilarityCommunity(self, target, source, max):
         # 最大线程数
