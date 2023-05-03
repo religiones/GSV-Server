@@ -83,7 +83,7 @@ def get_similarityNodes():
     val = request.get_json()
     print(val["modelCfg"])
     print(val["nodes"])
-    res = communityService.getSimilarityNodes(str(val["nodes"]), str(val["community"]), val["k"], val["modelCfg"])
+    res = communityService.getSimilarityNodes(str(val["nodes"]), str(val["community"]), val["graph"], val["k"], val["modelCfg"])
     if res != None:
         return jsonify(res)
     else:

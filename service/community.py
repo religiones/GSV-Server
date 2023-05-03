@@ -42,10 +42,11 @@ class CommunityService:
             return data
 
     "get graph embedding"
-    def get_graph_embedding(self, id, embeddingType, cfg):
+    def get_graph_embedding(self, id, graph, embeddingType, cfg):
         num_walks = 80  # 序列数量
         walk_length = 10  # 序列长度
         workers = 4
+        bias = cfg["bias"]
         if cfg["training_algorithm"] == "skip-gram":
             train_alg = 1
         else:
@@ -54,14 +55,30 @@ class CommunityService:
             optimize = 1
         else:
             optimize = 0
-        node_sql = "match (n) where n.community="+id+" return n.id"
-        edge_sql = "match (n)-[r]->(m) where n.community="+id+" and m.community="+id+" return n.id,m.id"
-        res_node = self.graphDevice.run(node_sql).to_ndarray()
-        res_edge = self.graphDevice.run(edge_sql).to_ndarray()
+        # node_sql = "match (n) where n.community="+id+" return n.id"
+        # edge_sql = "match (n)-[r]->(m) where n.community="+id+" and m.community="+id+" return n.id,m.id"
+        # res_node = self.graphDevice.run(node_sql).to_ndarray()
+        # res_edge = self.graphDevice.run(edge_sql).to_ndarray()
         node_list = []
-        for node in res_node:
-            node_list.append((node[0]))
-        edge_list = [tuple(y) for y in res_edge]
+        edge_list = []
+        feature_list = []
+        feature_dict = {}
+        print(graph)
+        # node extract
+        for node in graph["nodes"]:
+            node_list.append(node["id"])
+            if "donutAttrs" in node:
+                codeList = list(node["donutAttrs"].values())
+                codeStr = [str(x) for x in codeList]
+                code = "".join(codeStr)
+                feature_dict[node["id"]] = code
+            else:
+                code = "000000000"
+            feature_dict[node["id"]] = code
+            feature_list.append([code])
+        # edge extract
+        for edge in graph["edges"]:
+            edge_list.append((edge["source"],edge["target"]))
         # create graph
         G = nx.DiGraph()
         G.add_edges_from(edge_list)
@@ -72,7 +89,15 @@ class CommunityService:
         sentences = rw.simulate_walks(num_walks=num_walks, walk_length=walk_length, workers=workers, verbose=1)
         model = Word2Vec(sentences=sentences,
                          vector_size=128,
-                         min_count=5,
+                         min_count=0,
+                         sg=train_alg,
+                         hs=optimize,
+                         workers=workers,
+                         window=5,
+                         epochs=cfg["epoch"])
+        feature_model = Word2Vec(sentences=feature_list,
+                         vector_size=128,
+                         min_count=0,
                          sg=train_alg,
                          hs=optimize,
                          workers=workers,
@@ -81,12 +106,12 @@ class CommunityService:
         if embeddingType == "list":
             embedding_list = []
             for word in G.nodes():
-                embedding_list.append(model.wv[word].tolist())
+                embedding_list.append((1-bias)*model.wv[word]+bias*feature_model.wv[feature_dict[word]])
             return {"embedding": embedding_list, "id": id}
         else:
             embedding = {}
             for word in G.nodes():
-                embedding[word] = model.wv[word].tolist()
+                embedding[word] = (1-bias)*model.wv[word]+bias*feature_model.wv[feature_dict[word]]
             return embedding
 
     "get graph embedding to 2D"
@@ -95,8 +120,8 @@ class CommunityService:
         nodePos = modelTSNE.fit_transform((graphEmbedding)).tolist()
         return nodePos
 
-    def getSimilarityNodes(self, nodes, community, len, cfg):
-        embeddingDict = self.get_graph_embedding(community, "dict", cfg)
+    def getSimilarityNodes(self, nodes, community, graph, len, cfg):
+        embeddingDict = self.get_graph_embedding(community, graph, "dict", cfg)
         nodes_embedding = []
         embeddingList = []
         for (k, v) in embeddingDict.items():
