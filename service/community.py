@@ -55,15 +55,10 @@ class CommunityService:
             optimize = 1
         else:
             optimize = 0
-        # node_sql = "match (n) where n.community="+id+" return n.id"
-        # edge_sql = "match (n)-[r]->(m) where n.community="+id+" and m.community="+id+" return n.id,m.id"
-        # res_node = self.graphDevice.run(node_sql).to_ndarray()
-        # res_edge = self.graphDevice.run(edge_sql).to_ndarray()
         node_list = []
         edge_list = []
         feature_list = []
         feature_dict = {}
-        print(graph)
         # node extract
         for node in graph["nodes"]:
             node_list.append(node["id"])
@@ -78,7 +73,10 @@ class CommunityService:
             feature_list.append([code])
         # edge extract
         for edge in graph["edges"]:
-            edge_list.append((edge["source"],edge["target"]))
+            if "id" in edge["source"]:
+                edge_list.append((edge["source"]["id"],edge["target"]["id"]))
+            else:
+                edge_list.append((edge["source"], edge["target"]))
         # create graph
         G = nx.DiGraph()
         G.add_edges_from(edge_list)
@@ -112,7 +110,7 @@ class CommunityService:
             embedding = {}
             for word in G.nodes():
                 embedding[word] = (1-bias)*model.wv[word]+bias*feature_model.wv[feature_dict[word]]
-            return embedding
+            return embedding, G
 
     "get graph embedding to 2D"
     def getGraphEmbeddingTo2D(self, graphEmbedding):
@@ -121,7 +119,7 @@ class CommunityService:
         return nodePos
 
     def getSimilarityNodes(self, nodes, community, graph, len, cfg):
-        embeddingDict = self.get_graph_embedding(community, graph, "dict", cfg)
+        embeddingDict, G = self.get_graph_embedding(community, graph, "dict", cfg)
         nodes_embedding = []
         embeddingList = []
         for (k, v) in embeddingDict.items():
@@ -134,12 +132,10 @@ class CommunityService:
             similarity = "kd_tree"
         neigh = NearestNeighbors(n_neighbors=len, algorithm=similarity).fit(np.array(embeddingList))
         distance, indices = neigh.kneighbors(nodes_embedding)
-        print(distance[0])
         nodesId = []
         embeddingKeys = list(embeddingDict.keys())
         for id in indices[0]:
             nodesId.append(embeddingKeys[id])
-
         return {"nodesId":nodesId, "distance":distance[0].tolist()}
     "get similarity community"
     def getSimilarityCommunity(self, target, source, max):
